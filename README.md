@@ -17,4 +17,4 @@ El script utiliza `pandas` y `matplotlib` para simular tres escenarios financier
 
 1. Clona el repositorio:
    ```bash
-   git clone [https://github.com/EliuthMisraim/roi-bienestar-analysis/blob/main/Modelo_ROI_Bienestar.ipynb)
+   https://github.com/EliuthMisraim/roi-bienestar-analysis/blob/main/Modelo_ROI_Bienestar.ipynb
