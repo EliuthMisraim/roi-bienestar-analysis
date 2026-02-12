@@ -13,6 +13,49 @@ st.set_page_config(
 )
 
 # =========================================
+# ESTILOS CSS PERSONALIZADOS (El Botón Mágico)
+# =========================================
+st.markdown("""
+<style>
+/* Animación de las olas de colores */
+@keyframes gradient-animation {
+    0% {background-position: 0% 50%;}
+    50% {background-position: 100% 50%;}
+    100% {background-position: 0% 50%;}
+}
+
+/* Estilo del botón */
+.wave-btn {
+    display: block;
+    width: 100%;
+    padding: 12px 20px;
+    margin: 10px 0;
+    font-size: 16px;
+    font-weight: bold;
+    text-align: center;
+    color: white !important;
+    text-decoration: none !important;
+    border-radius: 8px;
+    /* Fondo base con gradiente multicolor */
+    background: linear-gradient(270deg, #FF512F, #DD2476, #40E0D0, #FF512F);
+    background-size: 300% 300%;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: all 0.4s ease;
+    border: none;
+}
+
+/* Efecto al pasar el mouse (Hover) */
+.wave-btn:hover {
+    /* Activar la animación de olas */
+    animation: gradient-animation 3s ease infinite;
+    /* Efecto de iluminación/resplandor */
+    box-shadow: 0 0 15px rgba(221, 36, 118, 0.6), 0 0 30px rgba(64, 224, 208, 0.4);
+    transform: scale(1.02); /* Crece un poquito */
+}
+</style>
+""", unsafe_allow_html=True)
+
+# =========================================
 # 1. LÓGICA DE NEGOCIO (Funciones de cálculo)
 # =========================================
 
@@ -146,8 +189,18 @@ with st.sidebar:
     st.subheader("Datos del Curso")
     costo_curso_in = st.number_input("Costo Total del Curso (Grupo)", min_value=0, value=45000, step=1000)
     
+    # --- LLAMADA A LA ACCIÓN (NUEVO) ---
     st.markdown("---")
-    st.caption("ROI para Grupos Cerrados")
+    st.markdown("### ¿Listo para recuperar la productividad?")
+    st.markdown("Descubre cómo implementar este programa en tu organización.")
+    
+    # Botón HTML personalizado con efecto de ola
+    link_agenda = "https://meetings.hubspot.com/eliuth-misraim?uuid=169366e7-ae2e-4855-8083-cc554bb3db85"
+    st.markdown(f"""
+        <a href="{link_agenda}" target="_blank" class="wave-btn">
+            📅 Agendar Consulta
+        </a>
+    """, unsafe_allow_html=True)
 
 # --- CUERPO PRINCIPAL ---
 
