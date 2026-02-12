@@ -177,7 +177,7 @@ def crear_graficos(df_resultados, costo_curso, moneda):
 # --- BARRA LATERAL (INPUTS) ---
 with st.sidebar:
     # 1. LOGO (Asegúrate que el nombre del archivo sea correcto)
-    st.image("logo.png", width=250)
+    st.image("logo.png", width=150)
 
     st.header("⚙️ Parámetros del Grupo")
     st.markdown("Configuración para grupo cerrado.")
@@ -297,4 +297,5 @@ st.info(f"""
     * Esto significa que antes de terminar el primer año, el curso ya habrá generado ganancias netas para la organización.
 
 **Conclusión:** Dado que el costo oculto de este grupo es de **{moneda_input}{costo_base_grupo:,.0f} anuales**, intervenir es altamente rentable incluso si solo una fracción del grupo tiene éxito.
+
 """)
