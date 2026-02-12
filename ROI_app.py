@@ -7,7 +7,7 @@ import pandas as pd
 # CONFIGURACIÓN DE LA PÁGINA
 # =========================================
 st.set_page_config(
-    page_title="Calculadora ROI - Bienestar Corporativo",
+    page_title="Calculadora ROI - Grupo Cerrado",
     page_icon="🚭",
     layout="wide"
 )
@@ -16,8 +16,8 @@ st.set_page_config(
 # 1. LÓGICA DE NEGOCIO (Funciones de cálculo)
 # =========================================
 
-def calcular_costo_actual(num_empleados, salario_mensual, pct_fumadores):
-    """Calcula el costo oculto actual (Línea Base)"""
+def calcular_costo_actual(num_participantes, salario_mensual):
+    """Calcula el costo oculto actual de los participantes del grupo"""
     # Constantes
     MINUTOS_PERDIDOS_DIA = 60
     DIAS_LABORALES_ANIO = 250
@@ -27,21 +27,21 @@ def calcular_costo_actual(num_empleados, salario_mensual, pct_fumadores):
     salario_diario = salario_mensual / 30
     salario_minuto = salario_diario / 8 / 60
     
-    num_fumadores = int(num_empleados * pct_fumadores)
+    # Costos (Asumimos que los 20 son fumadores)
+    costo_pausas = num_participantes * MINUTOS_PERDIDOS_DIA * salario_minuto * DIAS_LABORALES_ANIO
+    costo_absentismo = num_participantes * DIAS_EXTRA_AUSENTISMO * salario_diario
     
-    # Costos
-    costo_pausas = num_fumadores * MINUTOS_PERDIDOS_DIA * salario_minuto * DIAS_LABORALES_ANIO
-    costo_absentismo = num_fumadores * DIAS_EXTRA_AUSENTISMO * salario_diario
-    
-    return costo_pausas + costo_absentismo, num_fumadores
+    return costo_pausas + costo_absentismo
 
-def modelo_roi_bienestar(num_empleados, salario_mensual, costo_curso, moneda, pct_fumadores_base):
+def modelo_roi_bienestar(num_participantes, salario_mensual, costo_curso, moneda):
     """
-    Genera un modelo predictivo de ROI bajo 3 escenarios de efectividad.
+    Genera un modelo predictivo de ROI para un grupo cerrado.
     """
-    # 1. Situación Actual
-    costo_anual_actual, total_fumadores = calcular_costo_actual(num_empleados, salario_mensual, pct_fumadores_base)
-    costo_por_fumador = costo_anual_actual / total_fumadores if total_fumadores > 0 else 0
+    # 1. Situación Actual (Línea Base del grupo)
+    costo_anual_actual = calcular_costo_actual(num_participantes, salario_mensual)
+    
+    # Costo individual
+    costo_por_participante = costo_anual_actual / num_participantes if num_participantes > 0 else 0
 
     # 2. Escenarios
     escenarios = {
@@ -53,8 +53,11 @@ def modelo_roi_bienestar(num_empleados, salario_mensual, costo_curso, moneda, pc
     resultados = []
     
     for nombre, tasa_exito in escenarios.items():
-        empleados_recuperados = int(total_fumadores * tasa_exito)
-        ahorro_anual = empleados_recuperados * costo_por_fumador
+        # Personas del grupo que dejan de fumar
+        personas_recuperadas = int(num_participantes * tasa_exito)
+        
+        # Ahorro generado por esas personas
+        ahorro_anual = personas_recuperadas * costo_por_participante
         
         # ROI
         if costo_curso > 0:
@@ -69,13 +72,13 @@ def modelo_roi_bienestar(num_empleados, salario_mensual, costo_curso, moneda, pc
             
         resultados.append({
             'Escenario': nombre,
-            'Fumadores que dejan': empleados_recuperados,
+            'Personas que dejan': personas_recuperadas,
             'Ahorro Anual Proyectado': ahorro_anual,
             'ROI (%)': roi_pct,
             'Meses para recuperar $$': meses_recuperacion
         })
         
-    return pd.DataFrame(resultados), costo_anual_actual, total_fumadores
+    return pd.DataFrame(resultados), costo_anual_actual
 
 # =========================================
 # 2. FUNCIONES DE GRÁFICOS
@@ -90,7 +93,7 @@ def crear_graficos(df_resultados, costo_curso, moneda):
     colores = ['#ff9999', '#66b3ff', '#99ff99']
     barras = ax1.bar(df_resultados['Escenario'], df_resultados['ROI (%)'], color=colores, edgecolor='grey')
     
-    ax1.set_title(f'Retorno de Inversión (ROI) Proyectado', fontsize=12, fontweight='bold', color='#333333')
+    ax1.set_title(f'Retorno de Inversión (ROI)', fontsize=12, fontweight='bold', color='#333333')
     ax1.set_ylabel('ROI (%)')
     ax1.axhline(0, color='grey', linewidth=0.8)
     ax1.grid(axis='y', linestyle='--', alpha=0.3)
@@ -111,7 +114,7 @@ def crear_graficos(df_resultados, costo_curso, moneda):
     ax2.plot(meses, flujo_acumulado, marker='o', color='#2ecc71', linewidth=2, label='Flujo de Caja')
     ax2.axhline(0, color='red', linestyle='--', label='Punto de Equilibrio')
     
-    ax2.set_title(f'Tiempo de Recuperación (Escenario Moderado)', fontsize=12, fontweight='bold', color='#333333')
+    ax2.set_title(f'Recuperación de Inversión (Escenario Moderado)', fontsize=12, fontweight='bold', color='#333333')
     ax2.set_xlabel('Meses después del curso')
     ax2.set_ylabel(f'Balance Acumulado ({moneda})')
     ax2.legend()
@@ -130,37 +133,35 @@ def crear_graficos(df_resultados, costo_curso, moneda):
 
 # --- BARRA LATERAL (INPUTS) ---
 with st.sidebar:
-    st.header("⚙️ Parámetros de Entrada")
-    st.markdown("Ajusta los valores para actualizar el reporte en tiempo real.")
+    st.header("⚙️ Parámetros del Grupo")
+    st.markdown("Configuración para grupo cerrado.")
     
     moneda_input = st.selectbox("Moneda", ["$", "€", "S/", "MXN"], index=0)
     
-    st.subheader("Datos de la Empresa")
-    num_empleados_in = st.number_input("Número de Empleados", min_value=10, value=500, step=10)
+    # INPUTS SIMPLIFICADOS
+    st.subheader("Datos del Grupo")
+    num_participantes_in = st.number_input("Participantes (Fumadores)", min_value=1, value=20, step=1, help="Tamaño del grupo que tomará el curso")
     salario_promedio_in = st.number_input("Salario Promedio Mensual", min_value=0, value=15000, step=500)
-    pct_fumadores_in = st.slider("% Estimado de Fumadores", 5, 60, 25) / 100
     
     st.subheader("Datos del Curso")
-    costo_curso_in = st.number_input("Costo Total del Curso (Inversión)", min_value=0, value=45000, step=1000)
+    costo_curso_in = st.number_input("Costo Total del Curso (Grupo)", min_value=0, value=45000, step=1000)
     
     st.markdown("---")
-    st.caption("Desarrollado con Python & Streamlit")
+    st.caption("ROI para Grupos Cerrados")
 
 # --- CUERPO PRINCIPAL ---
 
-st.title("🚭 Reporte de Factibilidad Financiera: Programa de Cesación de Tabaco")
+st.title("🚭 Reporte de Factibilidad: Curso de Cesación (Grupo Cerrado)")
 st.markdown(f"""
-Este dashboard interactivo calcula el **impacto financiero** de implementar un curso para dejar de fumar en una empresa de 
-**{num_empleados_in} colaboradores**. Se comparan los costos ocultos actuales vs. la inversión del curso.
+Este análisis calcula el impacto financiero de impartir el curso a un grupo específico de **{num_participantes_in} colaboradores fumadores**.
 """)
 
 # Ejecutar Cálculos
-df_roi, costo_base, total_fumadores = modelo_roi_bienestar(
-    num_empleados_in, 
+df_roi, costo_base_grupo = modelo_roi_bienestar(
+    num_participantes_in, 
     salario_promedio_in, 
     costo_curso_in, 
-    moneda_input,
-    pct_fumadores_in
+    moneda_input
 )
 
 # --- 1. MÉTRICAS CLAVE ---
@@ -168,25 +169,25 @@ col1, col2, col3 = st.columns(3)
 
 with col1:
     st.metric(
-        label="📉 Costo Oculto Actual (Anual)",
-        value=f"{moneda_input}{costo_base:,.0f}",
-        help="Costo por pausas para fumar y ausentismo extra anual."
+        label="📉 Costo Oculto Actual (Grupo)",
+        value=f"{moneda_input}{costo_base_grupo:,.0f}",
+        help=f"Lo que le cuesta a la empresa que estas {num_participantes_in} personas fumen (anual)."
     )
 
 with col2:
     st.metric(
-        label="💰 Inversión Requerida",
+        label="💰 Inversión del Curso",
         value=f"{moneda_input}{costo_curso_in:,.0f}",
         delta=f"-{moneda_input}{costo_curso_in:,.0f}",
         delta_color="inverse",
-        help="Costo único del curso."
+        help="Costo único por el grupo completo."
     )
 
 with col3:
     st.metric(
-        label="👥 Fumadores Estimados",
-        value=f"{total_fumadores}",
-        help=f"Basado en un {pct_fumadores_in*100:.0f}% de la plantilla."
+        label="👥 Tamaño del Grupo",
+        value=f"{num_participantes_in} Personas",
+        help="Todos considerados fumadores activos."
     )
 
 st.divider()
@@ -198,7 +199,7 @@ st.pyplot(fig)
 
 # --- 3. TABLA DE ESCENARIOS ---
 st.subheader("📋 Detalle de Escenarios")
-st.markdown("Comparativa financiera según el porcentaje de éxito del programa:")
+st.markdown("Comparativa financiera según cuántas personas del grupo logren dejar de fumar:")
 
 # Formatear el dataframe para mostrarlo bonito
 df_display = df_roi.copy()
@@ -209,8 +210,8 @@ df_display['Meses para recuperar $$'] = df_display['Meses para recuperar $$'].ap
 st.dataframe(
     df_display,
     column_config={
-        "Escenario": st.column_config.TextColumn("Escenario"),
-        "Fumadores que dejan": st.column_config.NumberColumn("Colaboradores recuperados"),
+        "Escenario": st.column_config.TextColumn("Escenario de Éxito"),
+        "Personas que dejan": st.column_config.NumberColumn("Personas recuperadas"),
     },
     use_container_width=True,
     hide_index=True
@@ -220,23 +221,24 @@ st.dataframe(
 st.divider()
 st.header("💡 Interpretación de Resultados")
 
-# Obtenemos datos del escenario moderado para el texto dinámico
+# Datos del escenario moderado
 escenario_mod = df_roi.iloc[1]
 roi_mod = escenario_mod['ROI (%)']
 payback_mod = escenario_mod['Meses para recuperar $$']
 ahorro_mod = escenario_mod['Ahorro Anual Proyectado']
+personas_recuperadas = int(escenario_mod['Personas que dejan'])
 
 st.info(f"""
-**Análisis del Escenario Moderado (30% de éxito):**
+**Análisis para el grupo de {num_participantes_in} personas (Escenario Moderado - 30% de éxito):**
 
-1.  **Retorno de Inversión (ROI) del {roi_mod:,.0f}%:** * Esto significa que por cada {moneda_input}1 invertido en el curso, la empresa recupera su {moneda_input}1 y genera un beneficio adicional.
-    * Un ROI superior al 100% indica que el programa se paga solo con creces en el primer año.
+1.  **Impacto en Salud:** Se estima que **{personas_recuperadas} personas** del grupo dejarán de fumar permanentemente.
 
-2.  **Tiempo de Recuperación (Payback) de {payback_mod:.1f} meses:**
-    * La inversión de {moneda_input}{costo_curso_in:,.0f} se recupera en menos de **{int(payback_mod)+1} meses** gracias a la productividad recuperada.
-    * A partir del mes {int(payback_mod)+1}, todo el ahorro generado ({moneda_input}{ahorro_mod:,.0f} anuales) es ganancia neta para la empresa.
+2.  **Retorno de Inversión (ROI):** * La empresa obtendrá un retorno del **{roi_mod:,.0f}%**.
+    * Esto genera un flujo de caja positivo anual de **{moneda_input}{ahorro_mod:,.0f}** solo en productividad recuperada.
 
-3.  **Conclusión:**
-    * Incluso en un escenario **Conservador**, el proyecto es financieramente viable.
-    * El costo de *no hacer nada* es de **{moneda_input}{costo_base:,.0f} al año**, una cifra significativamente mayor al costo del curso.
+3.  **Tiempo de Recuperación:**
+    * La inversión de {moneda_input}{costo_curso_in:,.0f} se paga sola en **{payback_mod:.1f} meses**.
+    * Esto significa que antes de terminar el primer año, el curso ya habrá generado ganancias netas para la organización.
+
+**Conclusión:** Dado que el costo oculto de este grupo es de **{moneda_input}{costo_base_grupo:,.0f} anuales**, intervenir es altamente rentable incluso si solo una fracción del grupo tiene éxito.
 """)
