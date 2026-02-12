@@ -176,6 +176,9 @@ def crear_graficos(df_resultados, costo_curso, moneda):
 
 # --- BARRA LATERAL (INPUTS) ---
 with st.sidebar:
+    # 1. LOGO (Asegúrate que el nombre del archivo sea correcto)
+    st.image("logo.png", width=250)
+
     st.header("⚙️ Parámetros del Grupo")
     st.markdown("Configuración para grupo cerrado.")
     
