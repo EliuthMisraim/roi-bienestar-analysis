@@ -114,7 +114,7 @@ with st.sidebar:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         # Asegúrate de que este nombre sea el correcto
-        st.image("image_ef75e0.png", width=150) 
+        st.image("logo.png", width=150) 
         
     st.header("⚙️ Parámetros del Grupo")
     st.markdown("Configuración para grupo cerrado.")
@@ -306,4 +306,5 @@ st.info(f"""
     * Esto significa que antes de terminar el primer año, el curso ya habrá generado ganancias netas para la organización.
 
 **Conclusión:** Dado que el costo oculto de este grupo es de **{moneda_input}{costo_base_grupo:,.0f} anuales**, intervenir es altamente rentable incluso si solo una fracción del grupo tiene éxito.
+
 """)
