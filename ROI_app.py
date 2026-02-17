@@ -1,7 +1,6 @@
 import streamlit as st
-import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
+import plotly.graph_objects as go
 
 # =========================================
 # CONFIGURACIÓN DE LA PÁGINA
@@ -56,37 +55,28 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # =========================================
-# 1. LÓGICA DE NEGOCIO (Funciones de cálculo)
+# LÓGICA DE NEGOCIO (Funciones de cálculo)
 # =========================================
 
 def calcular_costo_actual(num_participantes, salario_mensual):
     """Calcula el costo oculto actual de los participantes del grupo"""
-    # Constantes
     MINUTOS_PERDIDOS_DIA = 60
     DIAS_LABORALES_ANIO = 250
     DIAS_EXTRA_AUSENTISMO = 3
     
-    # Tasas
     salario_diario = salario_mensual / 30
     salario_minuto = salario_diario / 8 / 60
     
-    # Costos (Asumimos que los 20 son fumadores)
     costo_pausas = num_participantes * MINUTOS_PERDIDOS_DIA * salario_minuto * DIAS_LABORALES_ANIO
     costo_absentismo = num_participantes * DIAS_EXTRA_AUSENTISMO * salario_diario
     
     return costo_pausas + costo_absentismo
 
 def modelo_roi_bienestar(num_participantes, salario_mensual, costo_curso, moneda):
-    """
-    Genera un modelo predictivo de ROI para un grupo cerrado.
-    """
-    # 1. Situación Actual (Línea Base del grupo)
+    """Genera un modelo predictivo de ROI para un grupo cerrado."""
     costo_anual_actual = calcular_costo_actual(num_participantes, salario_mensual)
-    
-    # Costo individual
     costo_por_participante = costo_anual_actual / num_participantes if num_participantes > 0 else 0
 
-    # 2. Escenarios
     escenarios = {
         'Conservador (10%)': 0.10,
         'Moderado (30%)': 0.30,
@@ -96,19 +86,12 @@ def modelo_roi_bienestar(num_participantes, salario_mensual, costo_curso, moneda
     resultados = []
     
     for nombre, tasa_exito in escenarios.items():
-        # Personas del grupo que dejan de fumar
         personas_recuperadas = int(num_participantes * tasa_exito)
-        
-        # Ahorro generado por esas personas
         ahorro_anual = personas_recuperadas * costo_por_participante
         
-        # ROI
         if costo_curso > 0:
             roi_pct = ((ahorro_anual - costo_curso) / costo_curso) * 100
-            if ahorro_anual > 0:
-                meses_recuperacion = (costo_curso / ahorro_anual) * 12
-            else:
-                meses_recuperacion = 999
+            meses_recuperacion = (costo_curso / ahorro_anual) * 12 if ahorro_anual > 0 else 999
         else:
             roi_pct = 0
             meses_recuperacion = 0
@@ -124,73 +107,20 @@ def modelo_roi_bienestar(num_participantes, salario_mensual, costo_curso, moneda
     return pd.DataFrame(resultados), costo_anual_actual
 
 # =========================================
-# 2. FUNCIONES DE GRÁFICOS
+# BARRA LATERAL (INPUTS)
 # =========================================
-
-def crear_graficos(df_resultados, costo_curso, moneda):
-    """Genera la figura de matplotlib para Streamlit"""
-    
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6), facecolor='#f0f2f6')
-    
-    # --- Gráfico 1: ROI ---
-    colores = ['#ff9999', '#66b3ff', '#99ff99']
-    barras = ax1.bar(df_resultados['Escenario'], df_resultados['ROI (%)'], color=colores, edgecolor='grey')
-    
-    ax1.set_title(f'Retorno de Inversión (ROI)', fontsize=12, fontweight='bold', color='#333333')
-    ax1.set_ylabel('ROI (%)')
-    ax1.axhline(0, color='grey', linewidth=0.8)
-    ax1.grid(axis='y', linestyle='--', alpha=0.3)
-    ax1.set_facecolor('white')
-    
-    for bar in barras:
-        height = bar.get_height()
-        ax1.text(bar.get_x() + bar.get_width()/2., height + 5,
-                f'{height:,.0f}%', ha='center', va='bottom', fontweight='bold', fontsize=10)
-
-    # --- Gráfico 2: Payback (Escenario Moderado) ---
-    escenario_mod = df_resultados.iloc[1]
-    ahorro_mensual = escenario_mod['Ahorro Anual Proyectado'] / 12
-    
-    meses = range(0, 13)
-    flujo_acumulado = [-costo_curso + (ahorro_mensual * m) for m in meses]
-    
-    ax2.plot(meses, flujo_acumulado, marker='o', color='#2ecc71', linewidth=2, label='Flujo de Caja')
-    ax2.axhline(0, color='red', linestyle='--', label='Punto de Equilibrio')
-    
-    ax2.set_title(f'Recuperación de Inversión (Escenario Moderado)', fontsize=12, fontweight='bold', color='#333333')
-    ax2.set_xlabel('Meses después del curso')
-    ax2.set_ylabel(f'Balance Acumulado ({moneda})')
-    ax2.legend()
-    ax2.grid(True, alpha=0.3)
-    ax2.set_facecolor('white')
-    
-    # Rellenar área de ganancia
-    ax2.fill_between(meses, 0, flujo_acumulado, where=np.array(flujo_acumulado)>=0, facecolor='green', alpha=0.1)
-    
-    plt.tight_layout()
-    return fig
-
-# =========================================
-# 3. INTERFAZ DE USUARIO (STREAMLIT)
-# =========================================
-
-# --- BARRA LATERAL (INPUTS) ---
 with st.sidebar:
     # --- LOGO CENTRADO ---
-    # Creamos 3 columnas: [vacío, imagen, vacío]
-    # El [1, 2, 1] indica la proporción del ancho de cada columna
     col1, col2, col3 = st.columns([1, 2, 1])
-    
     with col2:
-        # Ponemos la imagen solo en la columna del medio
-        st.image("logo.png", width=150)
-
+        # Asegúrate de que este nombre sea el correcto
+        st.image("image_ef75e0.png", width=150) 
+        
     st.header("⚙️ Parámetros del Grupo")
     st.markdown("Configuración para grupo cerrado.")
     
     moneda_input = st.selectbox("Moneda", ["$", "€", "S/", "MXN"], index=0)
     
-    # INPUTS SIMPLIFICADOS
     st.subheader("Datos del Grupo")
     num_participantes_in = st.number_input("Participantes (Fumadores)", min_value=1, value=20, step=1, help="Tamaño del grupo que tomará el curso")
     salario_promedio_in = st.number_input("Salario Promedio Mensual", min_value=0, value=15000, step=500)
@@ -198,12 +128,10 @@ with st.sidebar:
     st.subheader("Datos del Curso")
     costo_curso_in = st.number_input("Costo Total del Curso (Grupo)", min_value=0, value=45000, step=1000)
     
-    # --- LLAMADA A LA ACCIÓN (NUEVO) ---
+    # --- LLAMADA A LA ACCIÓN ---
     st.markdown("---")
     st.markdown("### ¿Listo para recuperar la productividad?")
-    st.markdown("Descubre cómo implementar este programa en tu organización.")
     
-    # Botón HTML personalizado con efecto de ola
     link_agenda = "https://meetings.hubspot.com/eliuth-misraim?uuid=169366e7-ae2e-4855-8083-cc554bb3db85"
     st.markdown(f"""
         <a href="{link_agenda}" target="_blank" class="wave-btn">
@@ -211,7 +139,9 @@ with st.sidebar:
         </a>
     """, unsafe_allow_html=True)
 
-# --- CUERPO PRINCIPAL ---
+# =========================================
+# CUERPO PRINCIPAL
+# =========================================
 
 st.title("🚭 Reporte de Factibilidad: Curso de Cesación (Grupo Cerrado)")
 st.markdown(f"""
@@ -227,16 +157,16 @@ df_roi, costo_base_grupo = modelo_roi_bienestar(
 )
 
 # --- 1. MÉTRICAS CLAVE ---
-col1, col2, col3 = st.columns(3)
+col_m1, col_m2, col_m3 = st.columns(3)
 
-with col1:
+with col_m1:
     st.metric(
         label="📉 Costo Oculto Actual (Grupo)",
         value=f"{moneda_input}{costo_base_grupo:,.0f}",
         help=f"Lo que le cuesta a la empresa que estas {num_participantes_in} personas fumen (anual)."
     )
 
-with col2:
+with col_m2:
     st.metric(
         label="💰 Inversión del Curso",
         value=f"{moneda_input}{costo_curso_in:,.0f}",
@@ -245,7 +175,7 @@ with col2:
         help="Costo único por el grupo completo."
     )
 
-with col3:
+with col_m3:
     st.metric(
         label="👥 Tamaño del Grupo",
         value=f"{num_participantes_in} Personas",
@@ -254,16 +184,90 @@ with col3:
 
 st.divider()
 
-# --- 2. GRÁFICOS ---
+# --- 2. GRÁFICOS INTERACTIVOS (PLOTLY) ---
 st.subheader("📊 Proyección de Resultados")
-fig = crear_graficos(df_roi, costo_curso_in, moneda_input)
-st.pyplot(fig)
+
+# Usamos dos columnas para colocar los gráficos lado a lado
+col_graf1, col_graf2 = st.columns(2)
+colores_graficos = ['#e74c3c', '#f39c12', '#2ecc71'] # Rojo, Amarillo, Verde
+
+# -- Gráfico 1: ROI (Barras) --
+fig_roi = go.Figure()
+fig_roi.add_trace(go.Bar(
+    x=df_roi['Escenario'],
+    y=df_roi['ROI (%)'],
+    marker_color=colores_graficos,
+    text=df_roi['ROI (%)'].apply(lambda x: f'{x:,.0f}%'),
+    textposition='auto',
+    hovertemplate='<b>%{x}</b><br>ROI: %{y:,.0f}%<extra></extra>'
+))
+fig_roi.update_layout(
+    title=dict(text="Retorno de Inversión (ROI)", font=dict(size=18)),
+    yaxis_title="ROI (%)",
+    height=400,
+    template="plotly_white",
+    margin=dict(t=50, b=0, l=0, r=0),
+    plot_bgcolor='rgba(0,0,0,0)',
+    paper_bgcolor='rgba(0,0,0,0)' # Fondo transparente para adaptarse al tema oscuro
+)
+col_graf1.plotly_chart(fig_roi, use_container_width=True)
+
+# -- Gráfico 2: Payback (Líneas e Intersecciones) --
+fig_payback = go.Figure()
+
+meses = list(range(0, 13)) # Proyección de 0 a 12 meses
+
+for index, row in df_roi.iterrows():
+    escenario = row['Escenario']
+    ahorro_mensual = row['Ahorro Anual Proyectado'] / 12
+    flujo_acumulado = [-costo_curso_in + (ahorro_mensual * m) for m in meses]
+    
+    # Añadir línea del flujo de caja
+    fig_payback.add_trace(go.Scatter(
+        x=meses,
+        y=flujo_acumulado,
+        mode='lines+markers',
+        name=escenario,
+        line=dict(color=colores_graficos[index], width=3),
+        hovertemplate=f'<b>{escenario}</b><br>Mes %{{x}}<br>Balance: {moneda_input}%{{y:,.0f}}<extra></extra>'
+    ))
+
+    # Añadir estrella en la intersección exacta (Punto de equilibrio)
+    meses_recuperacion = row['Meses para recuperar $$']
+    if 0 < meses_recuperacion <= 12:
+        fig_payback.add_trace(go.Scatter(
+            x=[meses_recuperacion],
+            y=[0],
+            mode='markers+text',
+            marker=dict(color=colores_graficos[index], size=14, symbol='star', line=dict(color='white', width=1)),
+            text=[f"{meses_recuperacion:.1f}m"],
+            textposition="top left",
+            showlegend=False,
+            hoverinfo='skip'
+        ))
+
+# Línea base de Punto de Equilibrio (Cero)
+fig_payback.add_hline(y=0, line_dash="dash", line_color="gray", annotation_text="Punto de Equilibrio", annotation_position="bottom right")
+
+fig_payback.update_layout(
+    title=dict(text="Tiempo de Recuperación por Escenario", font=dict(size=18)),
+    xaxis_title="Meses después del curso",
+    yaxis_title=f"Balance Acumulado ({moneda_input})",
+    height=400,
+    hovermode="x unified",
+    legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="right", x=1),
+    template="plotly_white",
+    margin=dict(t=50, b=0, l=0, r=0),
+    plot_bgcolor='rgba(0,0,0,0)',
+    paper_bgcolor='rgba(0,0,0,0)' # Fondo transparente
+)
+col_graf2.plotly_chart(fig_payback, use_container_width=True)
+
 
 # --- 3. TABLA DE ESCENARIOS ---
+st.divider()
 st.subheader("📋 Detalle de Escenarios")
-st.markdown("Comparativa financiera según cuántas personas del grupo logren dejar de fumar:")
 
-# Formatear el dataframe para mostrarlo bonito
 df_display = df_roi.copy()
 df_display['Ahorro Anual Proyectado'] = df_display['Ahorro Anual Proyectado'].apply(lambda x: f"{moneda_input}{x:,.2f}")
 df_display['ROI (%)'] = df_display['ROI (%)'].apply(lambda x: f"{x:,.1f}%")
@@ -283,7 +287,6 @@ st.dataframe(
 st.divider()
 st.header("💡 Interpretación de Resultados")
 
-# Datos del escenario moderado
 escenario_mod = df_roi.iloc[1]
 roi_mod = escenario_mod['ROI (%)']
 payback_mod = escenario_mod['Meses para recuperar $$']
